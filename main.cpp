@@ -23,103 +23,9 @@ int main() {
 
     solveQueries("queries", firstTransferTable, allConnections, allStations, allStops, allTrips, connectionTimeIndex);
 
-
-
-
-
-
-
-//     storing labels on disk
-//    store_labels(all_labels, "labels_min");
-
-//    cout << "Total Preprocessing space(MB): " << compute_size(all_labels) << endl;
-
-// *********************************************************************************************************************
-//     load precomputed labels from disk
-//    auto start0 = chrono::steady_clock::now();
-//
-//    vector<vector<vector<Label>>> all_labels = load_labels("labels", all_stations.size(), all_nbhds.size());
-//
-//    auto end0 = chrono::steady_clock::now();
-//    auto elapsed0 = chrono::duration_cast<chrono::seconds>(end0 - start0).count();
-//    cout << "elapsed time (sec): " << elapsed0 << endl;
-//
-//    // Manage and reallocate unused memory
-//    all_labels.shrink_to_fit();
-//    for (int O{0}; O < all_labels.size(); O++) {
-//        all_labels[O].shrink_to_fit();
-//        for (int D{0}; D < all_labels.size(); D++) {
-//            all_labels[O][D].shrink_to_fit();
-//        }
-//    }
-//
-//    cout << "Total Preprocessing space(MB): " << compute_size(all_labels) << endl;
-
-
-
-//     run each query at the different 8 times
-
-//     5 runs in a row
-
-//    vector<vector<int>> query_times(5);
-//    vector<vector<int>> vehicle_legs(5); // to record number of legs for each query at each hour
-//    vector<vector<int>> lab_touch(5); // to record number of evaluated labels
-
-//    vector<vector<int>> query_orig(5);
-//    vector<vector<int>> query_dest(5);
-
-    vector<int> EA;
-
-
-//    for(int i{0}; i < lab_touch.size(); i++){
-//        for (int q{0}; q < queries[0].size(); q++) {
-
-//            auto start = chrono::high_resolution_clock::now();
-//            vector<Segment> path = find_path_wait(queries[0][q], queries[1][q], queries[2][q], all_labels, all_trips, con_ind,
-//                             all_connections, all_stops, all_stations, all_routes, labels_touched);
-//            pureCSAmod(queries[0][q], queries[1][q], queries[2][q], all_connections, all_stations, all_stops, con_ind);
-//            auto end = chrono::high_resolution_clock::now();
-//            auto elapsed = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-
-//            query_orig[i].push_back(path[0].from_sp);
-//            query_dest[i].push_back(path.back().to_sp);
-
-
-//            query_times[i].push_back(elapsed);
-//            vehicle_legs[i].push_back(count_segments(path));
-//            lab_touch[i].push_back(labels_touched);
-
-//            EA.push_back(path.back().arrival);
-
-//            cout << "query " << q << " is completed!" << endl;
-
-//        }
-//    }
-
-//    // Exporting results to a text file
-//
-//    ofstream final_output3{"../EAminWait.txt"};
-//    for (int q{0}; q < queries[0].size(); q++) {
-//        final_output3 << EA[q] << endl;
-//    }
-//    final_output3.close();
-
-
-//    ofstream final_output1{"../orig_stops.txt"};
-//    for (int q{0}; q < query_orig[0].size(); q++) {
-//        final_output1 << query_orig[0][q] << " " << query_orig[1][q] << " " << query_orig[2][q] << " " <<
-//        query_orig[3][q] << " " << query_orig[4][q] << " " << endl;
-//    }
-//    final_output1.close();
-
-
-// *********************************************************************************************************************
-
-
     return 0;
 }
 
-// *********************************************************************************************************************
 // *********************************************************************************************************************
 // *********************************************************************************************************************
 
@@ -357,6 +263,7 @@ void defineConnectionTimeIndex(const vector<Connection> &connections, vector<int
     }
 }
 
+// build the oracle "first transfer (FT) table" 
 void buildFirstTransferTable(vector<vector<vector<Label>>> &firstTransferTable, const vector<Connection> &connections,
                              const vector<Station> &stations, const vector<Stop> &stops,
                              const vector<vector<int>> &neighbourhoods, const vector<int> &connectionTimeIndex){
@@ -523,6 +430,7 @@ int findPath(const int &origin, const int &destination, const int &departureTime
 }
 
 
+// export and save the solution (earliest arrival time) for all queries
 void exportSolutions(const vector<int> &solutions){
     ofstream out_file{"../solutions.txt"};
 
@@ -539,7 +447,7 @@ void exportSolutions(const vector<int> &solutions){
 
 
 
-
+// sort the connections by departure time then arrival time
 bool sort_con(const Connection &con1, const Connection &con2) {
     if (con1.departure < con2.departure)
         return true;
@@ -550,7 +458,7 @@ bool sort_con(const Connection &con1, const Connection &con2) {
 }
 
 
-
+// sort transfers by the stop ID of the destinations (optional)
 bool sort_transfer(const Transfer &trans1, const Transfer &trans2) {
     if (trans1.destination < trans2.destination)
         return true;
@@ -589,7 +497,7 @@ int findLastConnection(const vector<int> &con_ind, const int &dep) {
     return cn;
 }
 
-// Preprocessing and building oracle (label sets in OD matrix)
+// create and add labels in each FT row of the oracle 
 void createLabels(const int &neighbourhood, const vector<Connection> &connections, const vector<Station> &stations,
                    const vector<Stop> &stops, vector<vector<vector<Label>>> &firstTransferTable,
                    const vector<int> &connectionTimeIndex, const vector<vector<int>> &neighbourhoods) {
@@ -738,6 +646,7 @@ Leg walking_other_target(const int &target, const int &from_stop, const vector<S
     return walkOtoT;
 }
 
+// find the shortest footpath and its cost from a station to a stop
 vector<int>
 min_transfer_time(const int &source, const int &target, const vector<Station> &stations, const vector<Stop> &stops) {
     vector<int> min_sp(2, INT_MAX);
@@ -755,7 +664,7 @@ min_transfer_time(const int &source, const int &target, const vector<Station> &s
     return min_sp;
 }
 
-// find the duration/cost of the transfer between two stops
+// find the shortest footpath and its cost between two stops
 int findTransferTime(const int &stop1, const int &stop2, const vector<Stop> &stops) {
     for (int i{0}; i < stops[stop1].transfers.size(); i++) {
         if (stops[stop1].transfers[i].destination == stop2) {
@@ -765,6 +674,7 @@ int findTransferTime(const int &stop1, const int &stop2, const vector<Stop> &sto
     return INT_MAX;
 }
 
+// find the index of the first reachable label in a given OD cell in the FT table
 int find_label(const vector<Label> &Labels, const int &con_index) {
     for (int i{0}; i < Labels.size(); i++) {
         if (Labels[i].connection >= con_index) {
@@ -774,7 +684,7 @@ int find_label(const vector<Label> &Labels, const int &con_index) {
     return -1;
 }
 
-// modified version when trips are defined as sequences of connections (not stop events)
+// find the arrival time of a given trip at a given stop
 int findArrivalTime(const vector<int> &trip, const int &FTstop, const int &dep, const vector <Connection> &cons) {
     for (int i{0}; i < trip.size(); i++) {
         if (cons[trip[i]].to == FTstop && cons[trip[i]].arrival >= dep) { // modified to solve the "back-in-time issue"
@@ -784,6 +694,7 @@ int findArrivalTime(const vector<int> &trip, const int &FTstop, const int &dep, 
     return -1;
 }
 
+// find the index of the legs that should be removed from the path because a better footpath to the target has been found
 int findNonOptimalInd(const vector<Leg> &path, const Leg &walkT) {
     for (int i{0}; i < path.size(); i++) {
         if (path[i].to_sp == walkT.from_sp) {
@@ -793,6 +704,7 @@ int findNonOptimalInd(const vector<Leg> &path, const Leg &walkT) {
     return INT_MAX;
 }
 
+// store and save the oracle to the desk (FT table)
 void store_labels(const vector<vector<vector<Label>>> &labels, string file_name) {
     ofstream output{"../" + file_name + ".txt"};
 //    if (!output) {
@@ -808,6 +720,7 @@ void store_labels(const vector<vector<vector<Label>>> &labels, string file_name)
 //    output.close();
 }
 
+// load the presotred oracle (FT table) from the desk
 vector<vector<vector<Label>>> load_labels(string file_name, size_t num_stations, size_t num_nbhds) {
     ifstream input{"../" + file_name + ".txt"};
 //    if (!input) {
@@ -835,6 +748,7 @@ vector<vector<vector<Label>>> load_labels(string file_name, size_t num_stations,
     return labels;
 }
 
+// compute the size of the oracle (FT table) in MB
 double compute_size(const vector<vector<vector<Label>>> &labels) {
     double size{0};
     for (int s{0}; s < labels.size(); s++) {
